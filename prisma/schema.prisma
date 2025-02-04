@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+type EmailSendingHistorySubscribers {
+  email        String
+  status       String
+  subscriberId String @db.ObjectId
+}
+
+type EmailTemplatesJsonContent {
+  body   String
+  footer String
+  header String
+}
+
+model emailSendingHistory {
+  id              String                           @id @default(auto()) @map("_id") @db.ObjectId
+  emailTemplateId String                           @db.ObjectId
+  newsletterId    String                           @db.ObjectId
+  sentAt          DateTime                         @db.Date
+  subscribers     EmailSendingHistorySubscribers[]
+
+  @@index([emailTemplateId], map: "emailTemplateId_1")
+  @@index([newsletterId], map: "newsletterId_1")
+}
+
+model emailTemplates {
+  id             String                    @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt      DateTime                  @db.Date
+  jsonContent    EmailTemplatesJsonContent
+  lastSentAt     DateTime?                 @db.Date
+  name           String
+  newsletterId   String                    @db.ObjectId
+  status         String
+  subject        String
+  targetGroupIds String[]
+  targetType     String
+  updatedAt      DateTime                  @db.Date
+
+  @@index([newsletterId], map: "newsletterId_1")
+}
+
+model groups {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt    DateTime @db.Date
+  description  String
+  name         String
+  newsletterId String   @db.ObjectId
+  updatedAt    DateTime @db.Date
+}
+
+model newsletters {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt   DateTime @db.Date
+  description String
+  name        String
+  updatedAt   DateTime @db.Date
+  userId      String   @db.ObjectId
+}
+
+model subscribers {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  countryCode      String
+  createdAt        DateTime @db.Date
+  email            String   @unique(map: "email_1")
+  groupIds         String[]
+  location         String
+  newsletterId     String   @db.ObjectId
+  status           String
+  subscriptionDate DateTime @db.Date
+  updatedAt        DateTime @db.Date
+
+  @@index([newsletterId], map: "newsletterId_1")
+  @@index([countryCode], map: "countryCode_1")
+}
+
+model users {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt DateTime @db.Date
+  email     String   @unique
+  firstName String
+  lastName  String
+  password  String
+  updatedAt DateTime @db.Date
+}

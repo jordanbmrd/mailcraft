@@ -1,6 +1,9 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type {Metadata} from "next";
+import {Geist, Geist_Mono} from "next/font/google";
 import "./globals.css";
+import Sidebar from "@/app/components/sidebar";
+import {cn} from "@/lib/utils";
+import {NextAuthProvider} from "@/providers/NextAuthProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,11 +27,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
+    <body
+        className={cn(
+            `${geistSans.variable} ${geistMono.variable} antialiased`,
+            "rounded-md flex flex-col md:flex-row bg-gray-100 dark:bg-neutral-800 w-full flex-1 mx-auto border border-neutral-200 dark:border-neutral-700 overflow-hidden",
+            "h-screen"
+        )}
+    >
+        <NextAuthProvider>
+            <Sidebar/>
+            <div className="flex flex-1 flex-col md:flex-row gap-6">
+                <div
+                    className="overflow-y-scroll p-4 md:p-8 rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 flex flex-col gap-4 flex-1">
+                    {children}
+                </div>
+            </div>
+        </NextAuthProvider>
+    </body>
     </html>
-  );
+);
 }
