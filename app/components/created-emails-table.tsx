@@ -64,12 +64,14 @@ import {
     Trash,
 } from "lucide-react";
 import {useEffect, useId, useMemo, useRef, useState} from "react";
+import {useRouter} from "next/navigation";
 
 type Item = {
     id: string;
-    title: string;
+    subject: string;
     status: "draft" | "scheduled" | "sent";
-    updatedAt: string;
+    createdAt: string;
+    lastSentAt: string;
     openRate: number;
     clickRate: number;
 };
@@ -106,11 +108,10 @@ const columns: ColumnDef<Item>[] = [
     {
         header: "ID",
         accessorKey: "id",
-        size: 30,
     },
     {
         header: "Template name",
-        accessorKey: "title",
+        accessorKey: "subject",
         size: 220,
     },
     {
@@ -129,8 +130,12 @@ const columns: ColumnDef<Item>[] = [
         filterFn: statusFilterFn,
     },
     {
-        header: "Updated at",
-        accessorKey: "updatedAt",
+        header: "Last sent at",
+        accessorKey: "lastSentAt",
+    },
+    {
+        header: "Created at",
+        accessorKey: "createdAt",
     },
     {
         header: "Open rate",
@@ -160,7 +165,9 @@ interface CreatedEmailsTableProps {
 export default function CreatedEmailsTable(props: CreatedEmailsTableProps) {
     const id = useId();
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+        id: false,
+    });
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: 0,
         pageSize: 10,
@@ -169,57 +176,27 @@ export default function CreatedEmailsTable(props: CreatedEmailsTableProps) {
 
     const [sorting, setSorting] = useState<SortingState>([
         {
-            id: "id",
-            desc: false,
+            id: "createdAt",
+            desc: true,
         },
     ]);
 
     const [data, setData] = useState<Item[]>([]);
     useEffect(() => {
         async function fetchPosts() {
-            const mockData: Item[] = [
+            const res = await fetch(
+                "/api/newsletter/email-templates",
                 {
-                    id: "1",
-                    title: "Product Launch Announcement",
-                    status: "draft",
-                    updatedAt: "2024-03-15",
-                    openRate: 64.2,
-                    clickRate: 9.1
-                },
-                {
-                    id: "2",
-                    title: "Product Launch Announcement",
-                    status: "draft",
-                    updatedAt: "2024-03-15",
-                    openRate: 64.2,
-                    clickRate: 9.1
-                },
-                {
-                    id: "3",
-                    title: "Product Launch Announcement",
-                    status: "draft",
-                    updatedAt: "2024-03-15",
-                    openRate: 64.2,
-                    clickRate: 9.1
-                },
-                {
-                    id: "4",
-                    title: "Product Launch Announcement",
-                    status: "draft",
-                    updatedAt: "2024-03-15",
-                    openRate: 64.2,
-                    clickRate: 9.1
-                },
-                {
-                    id: "5",
-                    title: "Product Launch Announcement",
-                    status: "draft",
-                    updatedAt: "2024-03-15",
-                    openRate: 64.2,
-                    clickRate: 9.1
-                },
-            ];
-            setData(mockData);
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                }
+            );
+            console.log(res);
+            const data = await res.json();
+            console.log(data);
+            setData(data);
         }
         fetchPosts();
     }, []);
@@ -305,10 +282,10 @@ export default function CreatedEmailsTable(props: CreatedEmailsTableProps) {
                             ref={inputRef}
                             className={cn(
                                 "peer min-w-60 ps-9",
-                                Boolean(table.getColumn("title")?.getFilterValue()) && "pe-9",
+                                Boolean(table.getColumn("subject")?.getFilterValue()) && "pe-9",
                             )}
-                            value={(table.getColumn("title")?.getFilterValue() ?? "") as string}
-                            onChange={(e) => table.getColumn("title")?.setFilterValue(e.target.value)}
+                            value={(table.getColumn("subject")?.getFilterValue() ?? "") as string}
+                            onChange={(e) => table.getColumn("subject")?.setFilterValue(e.target.value)}
                             placeholder="Filter by title..."
                             type="text"
                             aria-label="Filter by title"
@@ -316,12 +293,12 @@ export default function CreatedEmailsTable(props: CreatedEmailsTableProps) {
                         <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 text-muted-foreground/80 peer-disabled:opacity-50">
                             <ListFilter size={16} strokeWidth={2} aria-hidden="true" />
                         </div>
-                        {Boolean(table.getColumn("title")?.getFilterValue()) && (
+                        {Boolean(table.getColumn("subject")?.getFilterValue()) && (
                             <button
                                 className="absolute inset-y-0 end-0 flex h-full w-9 items-center justify-center rounded-e-lg text-muted-foreground/80 outline-offset-2 transition-colors hover:text-foreground focus:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring/70 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                                 aria-label="Clear filter"
                                 onClick={() => {
-                                    table.getColumn("title")?.setFilterValue("");
+                                    table.getColumn("subject")?.setFilterValue("");
                                     if (inputRef.current) {
                                         inputRef.current.focus();
                                     }
@@ -650,8 +627,10 @@ export default function CreatedEmailsTable(props: CreatedEmailsTableProps) {
 }
 
 function RowActions({ row }: { row: Row<Item> }) {
+    const router = useRouter();
+
     const handleEditEmail = (row: Row<Item>) => {
-        console.log(row);
+        router.push(`/emails/create?id=${row.getValue("id")}`);
     }
 
     const handleDuplicateEmail = (row: Row<Item>) => {

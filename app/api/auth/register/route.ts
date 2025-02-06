@@ -4,7 +4,7 @@ import {prisma} from '@/lib/prisma';
 
 export async function POST(request: Request) {
     try {
-        const { firstName, lastName, email, password } = await request.json();
+        const { username, email, password } = await request.json();
 
         const existingUser = await prisma.users.findFirst({ where: { email } });
         if (existingUser) {
@@ -15,8 +15,7 @@ export async function POST(request: Request) {
 
         const user = await prisma.users.create({
             data: {
-                firstName,
-                lastName,
+                username,
                 email,
                 password: hashedPassword,
                 createdAt: new Date(),

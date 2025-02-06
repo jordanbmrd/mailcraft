@@ -6,6 +6,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 export const authOptions: NextAuthOptions = {
     pages: {
         signIn: '/signin',
+        newUser: '/signup',
     },
     session: {
         strategy: "jwt",
@@ -39,33 +40,28 @@ export const authOptions: NextAuthOptions = {
                 return {
                     id: user.id,
                     email: user.email,
-                    firstName: user.firstName,
-                    lastName: user.lastName
+                    username: user.username
                 };
             },
         }),
     ],
     callbacks: {
         session: ({ session, token }) => {
-            console.log("Session Callback", { session, token });
             return {
                 ...session,
                 user: {
                     ...session.user,
-                    id: token.sub,
-                    firstName: token.firstName,
-                    lastName: token.lastName
+                    id: token.id,
+                    username: token.username
                 },
             };
         },
         jwt: ({ token, user }) => {
-            console.log("JWT Callback", { token, user });
             if (user) {
                 return {
                     ...token,
                     id: user.id,
-                    firstName: user.firstName,
-                    lastName: user.lastName
+                    username: user.username,
                 };
             }
             return token;

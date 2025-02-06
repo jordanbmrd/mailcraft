@@ -16,7 +16,7 @@ import {useState} from "react";
 function NewEmailModal({open, setOpen}: NewEmailModalProps) {
     const [subject, setSubject] = useState('My email template');
     return (
-        <Dialog open={open} onOpenChange={open => setOpen(!open)}>
+        <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>Create a new email</DialogTitle>

@@ -12,8 +12,7 @@ function SignUp() {
     const router = useRouter();
     const id = useId();
 
-    const [firstName, setFirstName] = React.useState('');
-    const [lastName, setLastName] = React.useState('');
+    const [username, setUsername] = React.useState('');
     const [email, setEmail] = React.useState('');
     const [password, setPassword] = React.useState('');
 
@@ -27,7 +26,7 @@ function SignUp() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ firstName, lastName, email, password }),
+                body: JSON.stringify({ username, email, password }),
             });
 
             if (!response.ok) {
@@ -82,13 +81,9 @@ function SignUp() {
                     <form className="space-y-5" onSubmit={handleSubmit}>
                         <div className="space-y-4">
                             <div className="flex gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor={`${id}-first-name`}>First name</Label>
-                                    <Input id={`${id}-first-name`} placeholder="Matt" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required/>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor={`${id}-last-name`}>Last name</Label>
-                                    <Input id={`${id}-last-name`} placeholder="Welsh" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required/>
+                                <div className="space-y-2 w-full">
+                                    <Label htmlFor={`${id}-username`}>Username</Label>
+                                    <Input id={`${id}-username`} placeholder="mattwelsh" type="text" value={username} onChange={(e) => setUsername(e.target.value)} required/>
                                 </div>
                             </div>
                             <div className="space-y-2">

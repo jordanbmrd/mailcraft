@@ -13,12 +13,6 @@ type EmailSendingHistorySubscribers {
   subscriberId String @db.ObjectId
 }
 
-type EmailTemplatesJsonContent {
-  body   String
-  footer String
-  header String
-}
-
 model emailSendingHistory {
   id              String                           @id @default(auto()) @map("_id") @db.ObjectId
   emailTemplateId String                           @db.ObjectId
@@ -31,17 +25,19 @@ model emailSendingHistory {
 }
 
 model emailTemplates {
-  id             String                    @id @default(auto()) @map("_id") @db.ObjectId
-  createdAt      DateTime                  @db.Date
-  jsonContent    EmailTemplatesJsonContent
-  lastSentAt     DateTime?                 @db.Date
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt      DateTime  @db.Date
+  jsonContent    Json
+  lastSentAt     DateTime? @db.Date
   name           String
-  newsletterId   String                    @db.ObjectId
+  newsletterId   String    @db.ObjectId
   status         String
   subject        String
+  openRate       Float     @default(0)
+  clickRate      Float     @default(0)
   targetGroupIds String[]
   targetType     String
-  updatedAt      DateTime                  @db.Date
+  updatedAt      DateTime  @db.Date
 
   @@index([newsletterId], map: "newsletterId_1")
 }
@@ -84,8 +80,7 @@ model users {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   createdAt DateTime @db.Date
   email     String   @unique
-  firstName String
-  lastName  String
+  username  String   @unique
   password  String
   updatedAt DateTime @db.Date
 }

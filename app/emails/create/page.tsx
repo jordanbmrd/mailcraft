@@ -12,7 +12,7 @@ const EmailEditor = dynamic(() => import('react-email-editor'), { ssr: false })
 
 const CreateEmail = () => {
     const searchParams = useSearchParams();
-    const {status} = useSession({
+    const {data, status} = useSession({
         required: true,
         onUnauthenticated() {
             redirect("/api/auth/signin");
@@ -26,8 +26,42 @@ const CreateEmail = () => {
         const unlayer = emailEditorRef.current?.editor;
 
         unlayer?.saveDesign((design: string) => {
-            console.log('saveDesign', design);
-            alert('Design JSON has been logged in your developer console.');
+            const emailId = searchParams.get("id");
+
+            if (!emailId) {     // New email, create it
+                const createEmailTemplate = async () => {
+                    await fetch('/api/newsletter/email-templates', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: searchParams.get("subject") ?? "Welcome !",
+                            subject: searchParams.get("subject") ?? "Welcome !",
+                            jsonContent: design
+                        })
+                    })
+                    console.log('saveDesign', design);
+                    alert('Design has been saved');
+                }
+                createEmailTemplate();
+            } else {            // Existing email, update it
+                const editEmailTemplate = async () => {
+                    await fetch(`/api/newsletter/email-templates/${emailId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            jsonContent: design
+                        })
+                    })
+                    console.log('saveDesign', design);
+                    alert('Design has been updated');
+                }
+                editEmailTemplate();
+            }
+
         });
     };
 
@@ -51,8 +85,22 @@ const CreateEmail = () => {
     const onLoad: EmailEditorProps['onLoad'] = (unlayer) => {
         console.log('onLoad', unlayer);
         unlayer.addEventListener('design:loaded', onDesignLoad);
-        // @ts-expect-error: Unlayer types are not up-to-date
-        unlayer.loadDesign(generateDefaultEmail(searchParams.get("subject") ?? "Welcome !", "TODO: Replace author"));
+
+        const emailId = searchParams.get("id");
+
+        if (emailId) {      // Load existing email
+            const fetchEmailTemplate = async () => {
+                const response = await fetch(`/api/newsletter/email-templates/${emailId}`, { method: 'GET' });
+                const existingEmail = await response.json();
+                console.log(existingEmail);
+                unlayer.loadDesign(existingEmail.jsonContent);
+            }
+            fetchEmailTemplate();
+        } else {
+            // @ts-expect-error: Unlayer types are not up-to-date
+            unlayer.loadDesign(generateDefaultEmail(searchParams.get("subject") ?? "Welcome !", data?.user.username ?? ''));
+        }
+
     };
 
     const onReady: EmailEditorProps['onReady'] = (unlayer) => {

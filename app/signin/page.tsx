@@ -1,13 +1,47 @@
+'use client'
 import {Button} from "@/components/ui/button";
 import {Checkbox} from "@/components/ui/checkbox";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
-import {useId} from "react";
+import React, {useId} from "react";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 import Link from "next/link";
+import {signIn, useSession} from "next-auth/react";
+import {useRouter} from "next/navigation";
+import {useToast} from "@/hooks/use-toast";
 
 function SignIn() {
+    const router = useRouter();
     const id = useId();
+    const {toast} = useToast();
+    const {status} = useSession();
+
+    const [email, setEmail] = React.useState('');
+    const [password, setPassword] = React.useState('');
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const result = await signIn('credentials', {
+            redirect: false,
+            email,
+            password,
+        });
+
+        if (result?.error) {
+            toast({ variant: "destructive", title: "Erreur d'authentification" });
+        } else {
+            router.push('/');
+        }
+    };
+
+    React.useEffect(() => {
+        if (status === 'authenticated') {
+            router.push('/');
+        }
+    }, [status]);
+
+    if (status === "loading") return "Loading...";
+
     return (
         <div className="flex justify-center items-center h-screen">
             <Card className="mx-auto shadow-xl">
@@ -36,11 +70,11 @@ function SignIn() {
                         </CardHeader>
                     </div>
 
-                    <form className="space-y-5">
+                    <form className="space-y-5" onSubmit={handleSubmit}>
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor={`${id}-email`}>Email</Label>
-                                <Input id={`${id}-email`} placeholder="hi@yourcompany.com" type="email" required/>
+                                <Input id={`${id}-email`} placeholder="hi@yourcompany.com" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required/>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor={`${id}-password`}>Password</Label>
@@ -48,6 +82,8 @@ function SignIn() {
                                     id={`${id}-password`}
                                     placeholder="Enter your password"
                                     type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
                                     required
                                 />
                             </div>
@@ -63,7 +99,7 @@ function SignIn() {
                                 Forgot password?
                             </a>
                         </div>
-                        <Button type="button" className="w-full">
+                        <Button type="submit" className="w-full">
                             Sign in
                         </Button>
                     </form>

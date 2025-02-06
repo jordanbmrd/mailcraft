@@ -4,7 +4,7 @@ import {useSession} from "next-auth/react";
 import {redirect} from "next/navigation";
 
 export default function Audience() {
-    const {status} = useSession({
+    const {data, status} = useSession({
         required: true,
         onUnauthenticated() {
             redirect("/api/auth/signin");
@@ -24,7 +24,9 @@ export default function Audience() {
                 </p>
             </div>
 
-            <SubscribersTable />
+            { data?.user.id ? (
+                <SubscribersTable userId={data.user.id} />
+            ) : null }
         </div>
     );
 }

@@ -94,7 +94,7 @@ const generateDefaultEmail = (subject: string, author: string) => ({
                 "id": "footer-text",
                 "type": "text",
                 "values": {
-                  "text": `<p style='text-align: center; color: #666666; font-size: 12px;'>© ${new Date().getFullYear()} - Made by ${author}. All rights reserved.<br>123 Business Street, City, Country</p>`,
+                  "text": `<p style='text-align: center; color: #666666; font-size: 12px;'>© ${new Date().getFullYear()} - Sent by ${author} with Mailcraft. All rights reserved.<br>123 Business Street, City, Country</p>`,
                   "padding": "20px 10px"
                 }
               }

@@ -124,10 +124,14 @@ const columns: ColumnDef<Item>[] = [
     },
     {
         header: "Group(s)",
-        accessorKey: "department", // TODO: change this to source
-        cell: ({ row }) => [row.getValue("department") as string].map((group, i) => (
-            <Badge key={i}>{group}</Badge>
-        )),
+        accessorKey: "groups", // TODO: change this to source
+        cell: ({ row }) => (
+            <div className="flex flex-wrap gap-2">
+                {(row.getValue('groups') as string[] || []).map((group, i) => (
+                    <Badge key={i}>{group}</Badge>
+                ))}
+            </div>
+        ),
     },
     {
         header: "Status",
@@ -153,7 +157,11 @@ const columns: ColumnDef<Item>[] = [
     },
 ];
 
-export default function SubscribersTable() {
+interface SubscribersTableProps {
+    userId: string;
+}
+
+export default function SubscribersTable(props: SubscribersTableProps) {
     const id = useId();
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -165,8 +173,8 @@ export default function SubscribersTable() {
 
     const [sorting, setSorting] = useState<SortingState>([
         {
-            id: "email",
-            desc: false,
+            id: "joinDate",
+            desc: true,
         },
     ]);
 
@@ -174,9 +182,17 @@ export default function SubscribersTable() {
     useEffect(() => {
         async function fetchPosts() {
             const res = await fetch(
-                "https://res.cloudinary.com/dlzlfasou/raw/upload/users-01_fertyx.json",
+                "/api/newsletter/subscribers",
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                }
             );
+            console.log(res);
             const data = await res.json();
+            console.log(data);
             setData(data);
         }
         fetchPosts();
