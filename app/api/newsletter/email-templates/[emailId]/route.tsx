@@ -68,8 +68,8 @@ export async function GET(
             groups: groups.map(g => g.name),
             createdAt: moment(template.createdAt).format('MM/DD/yyyy HH:mm'),
             lastSentAt: template.lastSentAt ? moment(template.lastSentAt).format('MM/DD/yyyy HH:mm') : null,
-            openRate: template.openRate,
-            clickRate: template.clickRate
+            openCount: template.openCount,
+            clickCount: template.clickCount
         };
 
         return NextResponse.json(formattedTemplate);
@@ -153,8 +153,8 @@ export async function POST(
             groups: groups.map(g => g.name),
             createdAt: moment(updatedTemplate.createdAt).format('MM/DD/yyyy HH:mm'),
             lastSentAt: updatedTemplate.lastSentAt ? moment(updatedTemplate.lastSentAt).format('MM/DD/yyyy HH:mm') : null,
-            openRate: updatedTemplate.openRate,
-            clickRate: updatedTemplate.clickRate
+            openCount: updatedTemplate.openCount,
+            clickCount: updatedTemplate.clickCount
         };
 
         return NextResponse.json(formattedTemplate);
@@ -225,8 +225,8 @@ export async function PATCH(
             groups: groups.map(g => g.name),
             createdAt: moment(updatedTemplate.createdAt).format('MM/DD/yyyy HH:mm'),
             lastSentAt: updatedTemplate.lastSentAt ? moment(updatedTemplate.lastSentAt).format('MM/DD/yyyy HH:mm') : null,
-            openRate: updatedTemplate.openRate,
-            clickRate: updatedTemplate.clickRate
+            openCount: updatedTemplate.openCount,
+            clickCount: updatedTemplate.clickCount
         };
 
         return NextResponse.json(formattedTemplate);
@@ -245,7 +245,6 @@ export async function DELETE(
     { params }: { params: { emailId: string } }
 ) {
     try {
-        console.log("EMAIL ID :::", params.emailId);
         const session = await getServerSession(authOptions);
 
         if (!session?.user) {
@@ -286,6 +285,11 @@ export async function DELETE(
                 { status: 403 }
             );
         }
+
+        // Delete all associated email events first
+        await prisma.emailEvents.deleteMany({
+            where: { emailTemplateId: params.emailId }
+        });
 
         // Delete the template
         await prisma.emailTemplates.delete({

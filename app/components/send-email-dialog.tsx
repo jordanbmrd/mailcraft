@@ -19,6 +19,8 @@ import {
 } from "@tanstack/react-table";
 import {Input} from "@/components/ui/input";
 import {Select, SelectContent, SelectItem} from "@/components/ui/select";
+import {Loader2} from "lucide-react";
+import {useToast} from "@/hooks/use-toast";
 
 interface SendEmailDialogProps {
     open: boolean;
@@ -35,6 +37,7 @@ type Subscriber = {
 }
 
 export default function SendEmailDialog({ open, onOpenChange, emailId }: SendEmailDialogProps) {
+    const {toast} = useToast();
     const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
     const [groups, setGroups] = useState<Array<{
         id: string;
@@ -47,6 +50,7 @@ export default function SendEmailDialog({ open, onOpenChange, emailId }: SendEma
         pageIndex: 0,
         pageSize: 10,
     });
+    const [isSending, setIsSending] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -106,6 +110,7 @@ export default function SendEmailDialog({ open, onOpenChange, emailId }: SendEma
     };
 
     const handleSendEmail = async () => {
+        setIsSending(true);
         try {
             const res = await fetch('/api/newsletter/email-templates/send', {
                 method: 'POST',
@@ -124,10 +129,21 @@ export default function SendEmailDialog({ open, onOpenChange, emailId }: SendEma
 
             const data = await res.json();
             console.log('Emails sent:', data);
+            toast({
+                title: "Success",
+                description: `Email successfully sent to ${selectedSubscribers.length} subscriber${selectedSubscribers.length > 1 ? 's' : ''}.`,
+                variant: "default",
+            });
             onOpenChange(false);
         } catch (error) {
             console.error('Error sending emails:', error);
-            // TODO: Afficher une notification d'erreur
+            toast({
+                title: "Error",
+                description: "An error occurred while sending the email.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSending(false);
         }
     };
 
@@ -358,9 +374,16 @@ export default function SendEmailDialog({ open, onOpenChange, emailId }: SendEma
                         </Button>
                         <Button 
                             onClick={handleSendEmail}
-                            disabled={selectedSubscribers.length === 0}
+                            disabled={selectedSubscribers.length === 0 || isSending}
                         >
-                            Send
+                            {isSending ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Sending...
+                                </>
+                            ) : (
+                                'Send'
+                            )}
                         </Button>
                     </div>
                 </DialogFooter>

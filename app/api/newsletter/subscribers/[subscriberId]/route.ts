@@ -69,4 +69,70 @@ export async function PATCH(
             {status: 500}
         );
     }
+}
+
+export async function DELETE(
+    req: NextRequest,
+    { params }: { params: Promise<{ subscriberId: string }> }
+) {
+    try {
+        const resolvedParams = await params;
+
+        // Verify authentication
+        const session = await getServerSession(authOptions);
+        if (!session?.user) {
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 }
+            );
+        }
+
+        // Get user's newsletter
+        const newsletter = await prisma.newsletters.findFirst({
+            where: {
+                userId: session.user.id
+            }
+        });
+
+        if (!newsletter) {
+            return NextResponse.json(
+                { error: "Newsletter not found" },
+                { status: 404 }
+            );
+        }
+
+        // Verify subscriber exists and belongs to user's newsletter
+        const subscriber = await prisma.subscribers.findFirst({
+            where: {
+                id: resolvedParams.subscriberId,
+                newsletterId: newsletter.id
+            }
+        });
+
+        if (!subscriber) {
+            return NextResponse.json(
+                { error: "Subscriber not found" },
+                { status: 404 }
+            );
+        }
+
+        // Delete the subscriber
+        await prisma.subscribers.delete({
+            where: {
+                id: resolvedParams.subscriberId
+            }
+        });
+
+        return NextResponse.json({ 
+            success: true,
+            message: "Subscriber successfully deleted" 
+        });
+
+    } catch (error) {
+        console.error("Error deleting subscriber:", error);
+        return NextResponse.json(
+            { error: "Internal server error" },
+            { status: 500 }
+        );
+    }
 } 

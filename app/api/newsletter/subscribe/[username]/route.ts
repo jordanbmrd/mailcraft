@@ -69,6 +69,8 @@ export async function POST(
                 newsletterId: newsletter.id,
                 countryCode: userPosition.countryCode || "",
                 location: (userPosition.city && userPosition.country) ? `${userPosition.city}, ${userPosition.country}` : "Unknown",
+                city: userPosition.city ? userPosition.city : "Unknown",
+                country: userPosition.country ? userPosition.country : "Unknown",
                 status: "ACTIVE",
                 groups: [],
                 subscriptionDate: new Date(),

@@ -4,6 +4,7 @@ import "./globals.css";
 import Sidebar from "@/app/components/sidebar";
 import {cn} from "@/lib/utils";
 import {NextAuthProvider} from "@/providers/NextAuthProvider";
+import {Toaster} from "@/components/ui/toaster";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,6 +43,7 @@ export default function RootLayout({
                     {children}
                 </div>
             </div>
+            <Toaster />
         </NextAuthProvider>
     </body>
     </html>

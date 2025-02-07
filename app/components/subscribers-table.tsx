@@ -65,6 +65,7 @@ import {
 } from "lucide-react";
 import {useEffect, useId, useMemo, useRef, useState} from "react";
 import DeleteConfirmationDialog from "@/app/components/delete-confirmation-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 type Item = {
     id: string;
@@ -236,8 +237,11 @@ interface SubscribersTableProps {
 
 export default function SubscribersTable(props: SubscribersTableProps) {
     const id = useId();
+    const { toast } = useToast();
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+        id: false
+    });
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: 0,
         pageSize: 10,
@@ -275,6 +279,10 @@ export default function SubscribersTable(props: SubscribersTableProps) {
             size: 28,
             enableSorting: false,
             enableHiding: false,
+        },
+        {
+            header: "ID",
+            accessorKey: "id",
         },
         {
             header: "Email",
@@ -343,13 +351,42 @@ export default function SubscribersTable(props: SubscribersTableProps) {
         fetchPosts();
     }, []);
 
-    const handleDeleteRows = () => {
+    const handleDeleteRows = async () => {
         const selectedRows = table.getSelectedRowModel().rows;
-        const updatedData = data.filter(
-            (item) => !selectedRows.some((row) => row.original.id === item.id),
-        );
-        setData(updatedData);
-        table.resetRowSelection();
+
+        try {
+            // Delete each selected subscriber
+            await Promise.all(
+                selectedRows.map(async (row) => {
+                    const res = await fetch(`/api/newsletter/subscribers/${row.getValue("id")}`, {
+                        method: 'DELETE',
+                    });
+
+                    if (!res.ok) {
+                        throw new Error(`Failed to delete subscriber ${row.getValue("id")}`);
+                    }
+                })
+            );
+
+            // Update local state
+            const updatedData = data.filter(
+                (item) => !selectedRows.some((row) => row.original.id === item.id)
+            );
+            setData(updatedData);
+            table.resetRowSelection();
+
+            toast({
+                title: "Success",
+                description: `Successfully deleted ${selectedRows.length} ${selectedRows.length === 1 ? 'subscriber' : 'subscribers'}.`,
+            });
+        } catch (error) {
+            console.error('Error deleting subscribers:', error);
+            toast({
+                title: "Error",
+                description: "Failed to delete subscribers. Please try again.",
+                variant: "destructive",
+            });
+        }
     };
 
     const table = useReactTable({
@@ -765,6 +802,7 @@ export default function SubscribersTable(props: SubscribersTableProps) {
 
 function RowActions({ row }: { row: Row<Item> }) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const { toast } = useToast();
 
     const handleUnsubscribeUser = (row: Row<Item>) => {
         console.log(row);
@@ -780,10 +818,20 @@ function RowActions({ row }: { row: Row<Item> }) {
                 throw new Error('Failed to delete subscriber');
             }
 
+            toast({
+                title: "Success",
+                description: "Subscriber successfully deleted.",
+            });
+
             // Rafraîchir la page pour voir les changements
             window.location.reload();
         } catch (error) {
             console.error('Error deleting subscriber:', error);
+            toast({
+                title: "Error",
+                description: "Failed to delete subscriber. Please try again.",
+                variant: "destructive",
+            });
         }
     }
 

@@ -14,12 +14,20 @@ import {Button} from "@/components/ui/button";
 import {cn} from "@/lib/utils";
 import React, {useEffect, useState} from "react";
 import NewEmailModal from "@/app/components/new-email-modal";
+import SubscribersByCountryChart from "@/app/components/subscribers-by-country-chart";
 
 type SubscriberStats = {
     total: number;
     previousTotal: number;
     activePercentage: number;
     percentageIncrease: number;
+};
+
+type EmailStats = {
+    openRate: number;
+    previousOpenRate: number;
+    clickRate: number;
+    previousClickRate: number;
 };
 
 const Dashboard = () => {
@@ -38,14 +46,21 @@ const Dashboard = () => {
         activePercentage: 0,
         percentageIncrease: 0
     });
+    const [emailStats, setEmailStats] = useState<EmailStats>({
+        openRate: 0,
+        previousOpenRate: 0,
+        clickRate: 0,
+        previousClickRate: 0
+    });
 
     const subscriptionLink = data?.user.username ? `mailcraft.pro/${data.user.username}/subscribe` : 'Loading...';
 
     useEffect(() => {
-        async function fetchSubscriberStats() {
+        async function fetchStats() {
             try {
-                const res = await fetch('/api/newsletter/subscribers');
-                const subscribers = await res.json();
+                // Fetch subscribers
+                const subscribersRes = await fetch('/api/newsletter/subscribers');
+                const subscribers = await subscribersRes.json();
                 
                 const total = subscribers.length;
                 const activeSubscribers = subscribers.filter((s: any) => s.status === 'ACTIVE').length;
@@ -61,12 +76,79 @@ const Dashboard = () => {
                     activePercentage: total > 0 ? (activeSubscribers / total) * 100 : 0,
                     percentageIncrease
                 });
+
+                // Fetch email templates to calculate open and click rates
+                const emailsRes = await fetch('/api/newsletter/email-templates');
+                const emails = await emailsRes.json();
+
+                // Get date range for the history we need
+                const fourWeeksAgo = new Date();
+                fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+
+                // Fetch only relevant email sending history
+                const historyRes = await fetch(`/api/newsletter/email-sending-history?from=${fourWeeksAgo.toISOString()}`);
+                const history = await historyRes.json();
+
+                // Create a map of emailTemplateId to number of recipients
+                const emailRecipientsMap = new Map();
+                history.forEach((record: any) => {
+                    emailRecipientsMap.set(record.emailTemplateId, record.recipientsCount);
+                });
+
+                // Calculate current period stats (last 2 weeks)
+                const currentPeriodEmails = emails.filter((email: any) => {
+                    const sentDate = new Date(email.lastSentAt);
+                    const twoWeeksAgo = new Date();
+                    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+                    return sentDate >= twoWeeksAgo && email.status === 'sent';
+                });
+
+                // Calculate previous period stats (2-4 weeks ago)
+                const previousPeriodEmails = emails.filter((email: any) => {
+                    const sentDate = new Date(email.lastSentAt);
+                    const twoWeeksAgo = new Date();
+                    fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+                    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+                    return sentDate >= fourWeeksAgo && sentDate < twoWeeksAgo && email.status === 'sent';
+                });
+
+                // Calculate rates
+                const currentOpenRate = calculateRate(currentPeriodEmails, 'openCount', emailRecipientsMap);
+                const previousOpenRate = calculateRate(previousPeriodEmails, 'openCount', emailRecipientsMap);
+                const currentClickRate = calculateRate(currentPeriodEmails, 'clickCount', emailRecipientsMap);
+                const previousClickRate = calculateRate(previousPeriodEmails, 'clickCount', emailRecipientsMap);
+
+                setEmailStats({
+                    openRate: currentOpenRate,
+                    previousOpenRate,
+                    clickRate: currentClickRate,
+                    previousClickRate
+                });
             } catch (error) {
-                console.error('Failed to fetch subscriber stats:', error);
+                console.error('Failed to fetch stats:', error);
             }
         }
-        fetchSubscriberStats();
+        fetchStats();
     }, []);
+
+    const calculateRate = (emails: any[], rateType: 'openCount' | 'clickCount', recipientsMap: Map<string, number>) => {
+        if (emails.length === 0) return 0;
+
+        let totalEvents = 0;
+        let totalRecipients = 0;
+
+        emails.forEach(email => {
+            // Add the events (opens or clicks) for this email
+            totalEvents += email[rateType] || 0;
+            // Add the number of recipients for this email
+            totalRecipients += recipientsMap.get(email.id) || 0;
+        });
+
+        if (totalRecipients === 0) return 0;
+
+        // Return the percentage
+        return (totalEvents / totalRecipients) * 100;
+    };
 
     const handleCopyLink = () => {
         navigator.clipboard.writeText(subscriptionLink);
@@ -100,23 +182,26 @@ const Dashboard = () => {
                         positive={subscriberStats.total > subscriberStats.previousTotal}
                     />
                     <StatsCard
-                        title="Active Rate"
-                        value={`${subscriberStats.activePercentage.toFixed(1)}%`}
-                        percentage={2.1}
-                        footerText="Industry average 58.3%"
-                        positive={subscriberStats.activePercentage > 58.3}
+                        title="Open Rate"
+                        value={`${emailStats.openRate.toFixed(1)}%`}
+                        percentage={emailStats.openRate - emailStats.previousOpenRate}
+                        footerText={`Previous period ${emailStats.previousOpenRate.toFixed(1)}%`}
+                        positive={emailStats.openRate > emailStats.previousOpenRate}
                     />
                     <StatsCard
                         title="Click Rate"
-                        value="9.8%"
-                        percentage={-1.4}
-                        footerText="Previous period 11.2%"
-                        positive={false}
+                        value={`${emailStats.clickRate.toFixed(1)}%`}
+                        percentage={emailStats.clickRate - emailStats.previousClickRate}
+                        footerText={`Previous period ${emailStats.previousClickRate.toFixed(1)}%`}
+                        positive={emailStats.clickRate > emailStats.previousClickRate}
                     />
                 </div>
 
                 {/* Active subscribers chart */}
                 <ActiveSubscribersChart />
+
+                {/* Subscribers by country chart */}
+                <SubscribersByCountryChart />
             </div>
 
             {/* Right Sidebar */}

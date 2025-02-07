@@ -7,7 +7,8 @@ import {
     Settings,
     Speech,
     SquarePen,
-    TrendingUp
+    TrendingUp,
+    CreditCard
 } from "lucide-react";
 import React, {useState} from "react";
 import Image from "next/image";
@@ -48,19 +49,26 @@ export default function Sidebar() {
             ),
         },
         {
-            label: "Grow",
-            href: "#",
+            label: "Plans",
+            href: "/settings/plans",
             icon: (
-                <TrendingUp className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0"/>
+                <CreditCard className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0"/>
             ),
         },
-        {
-            label: "Settings",
-            href: "#",
-            icon: (
-                <Settings className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0"/>
-            ),
-        },
+        // {
+        //     label: "Grow",
+        //     href: "#",
+        //     icon: (
+        //         <TrendingUp className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0"/>
+        //     ),
+        // },
+        // {
+        //     label: "Settings",
+        //     href: "#",
+        //     icon: (
+        //         <Settings className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0"/>
+        //     ),
+        // },
         {
             label: capitalizeFirstLetter(data?.user.username) ?? 'Loading...',
             href: "#",

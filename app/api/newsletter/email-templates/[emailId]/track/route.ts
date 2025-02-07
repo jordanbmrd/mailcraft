@@ -54,8 +54,8 @@ export async function GET(
                 id: resolvedParams.emailId,
             },
             data: {
-                openRate: uniqueOpens.length,
-                clickRate: uniqueClicks.length
+                openCount: uniqueOpens.length,
+                clickCount: uniqueClicks.length
             },
         });
 

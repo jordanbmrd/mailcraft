@@ -28,11 +28,23 @@ export async function POST(request: Request) {
 
         const hashedPassword = await bcrypt.hash(password, 12);
 
+        // Create user
         const user = await prisma.users.create({
             data: {
                 username: lowercaseUsername,
                 email,
                 password: hashedPassword,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            },
+        });
+
+        // Create a newsletter for the new user
+        await prisma.newsletters.create({
+            data: {
+                userId: user.id,
+                name: `${lowercaseUsername}'s Newsletter`,
+                description: `Newsletter by ${lowercaseUsername}`,
                 createdAt: new Date(),
                 updatedAt: new Date(),
             },

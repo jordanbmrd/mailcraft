@@ -69,6 +69,7 @@ import {
     Filter,
     ListFilter,
     Plus,
+    Pen,
     Send,
     Trash,
 } from "lucide-react";
@@ -77,6 +78,7 @@ import {useRouter} from "next/navigation";
 import {RadioGroup, RadioGroupItem} from "@/components/ui/radio-group";
 import SendEmailDialog from "@/app/components/send-email-dialog";
 import DeleteConfirmationDialog from "@/app/components/delete-confirmation-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 type Item = {
     id: string;
@@ -84,8 +86,8 @@ type Item = {
     status: "draft" | "scheduled" | "sent";
     createdAt: string;
     lastSentAt: string;
-    openRate: number;
-    clickRate: number;
+    openCount: number;
+    clickCount: number;
 };
 
 const statusFilterFn: FilterFn<Item> = (row, columnId, filterValue: string[]) => {
@@ -155,22 +157,22 @@ const columns: ColumnDef<Item>[] = [
         accessorKey: "createdAt",
     },
     {
-        header: "Open rate",
-        accessorKey: "openRate",
+        header: "Opens",
+        accessorKey: "openCount",
         size: 100,
-        cell: ({row}) => <span>{ row.getValue("openRate") }</span>
+        cell: ({row}) => <span>{ row.getValue("openCount") }</span>
     },
     {
-        header: "Click rate",
-        accessorKey: "clickRate",
+        header: "Clicks",
+        accessorKey: "clickCount",
         size: 100,
-        cell: ({row}) => <span>{ row.getValue("clickRate") }</span>
+        cell: ({row}) => <span>{ row.getValue("clickCount") }</span>
     },
     {
         id: "actions",
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => <RowActions row={row} />,
-        size: 60,
+        size: 70,
         enableHiding: false,
     },
 ];
@@ -218,6 +220,8 @@ export default function CreatedEmailsTable(props: CreatedEmailsTableProps) {
         fetchPosts();
     }, []);
 
+    const { toast } = useToast();
+
     const handleDeleteRows = async () => {
         const selectedRows = table.getSelectedRowModel().rows;
         
@@ -241,9 +245,18 @@ export default function CreatedEmailsTable(props: CreatedEmailsTableProps) {
             );
             setData(updatedData);
             table.resetRowSelection();
+
+            toast({
+                title: "Success",
+                description: `Successfully deleted ${selectedRows.length} ${selectedRows.length === 1 ? 'template' : 'templates'}.`,
+            });
         } catch (error) {
             console.error('Error deleting email templates:', error);
-            // TODO: Show error toast
+            toast({
+                title: "Error",
+                description: "Failed to delete templates. Please try again.",
+                variant: "destructive",
+            });
         }
     };
 
@@ -670,6 +683,7 @@ export default function CreatedEmailsTable(props: CreatedEmailsTableProps) {
 
 function RowActions({ row }: { row: Row<Item> }) {
     const router = useRouter();
+    const { toast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isEditNameDialogOpen, setIsEditNameDialogOpen] = useState(false);
@@ -743,15 +757,34 @@ function RowActions({ row }: { row: Row<Item> }) {
                 throw new Error('Failed to delete template');
             }
 
+            toast({
+                title: "Success",
+                description: "Template successfully deleted.",
+            });
+
             // Rafraîchir la page pour voir les changements
             window.location.reload();
         } catch (error) {
             console.error('Error deleting email template:', error);
+            toast({
+                title: "Error",
+                description: "Failed to delete template. Please try again.",
+                variant: "destructive",
+            });
         }
     }
 
     return (
         <div className="flex items-center justify-end gap-1">
+            <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => handleEditEmail(row)}
+                className="hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            >
+                <Pen size={16} className="text-neutral-600 dark:text-neutral-400" />
+            </Button>
+
             <Button
                 size="icon"
                 variant="ghost"
@@ -776,7 +809,6 @@ function RowActions({ row }: { row: Row<Item> }) {
                 <DropdownMenuContent align="end">
                     <DropdownMenuGroup>
                         <DropdownMenuItem onClick={() => setIsEditNameDialogOpen(true)}>Edit name</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEditEmail(row)}>Edit</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDuplicateEmail(row)}>Duplicate</DropdownMenuItem>
                     </DropdownMenuGroup>
                     <DropdownMenuSeparator />

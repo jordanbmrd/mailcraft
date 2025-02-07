@@ -34,8 +34,8 @@ model emailTemplates {
   newsletterId   String    @db.ObjectId
   status         String
   subject        String
-  openRate       Float     @default(0)
-  clickRate      Float     @default(0)
+  openCount      Float     @default(0)
+  clickCount     Float     @default(0)
   targetType     String
   updatedAt      DateTime  @db.Date
 
@@ -76,6 +76,12 @@ model subscribers {
   @@index([countryCode], map: "countryCode_1")
 }
 
+enum Plan {
+  LAUNCH
+  GROW
+  SCALE
+}
+
 model users {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   createdAt DateTime @db.Date
@@ -83,6 +89,8 @@ model users {
   username  String   @unique
   password  String
   updatedAt DateTime @db.Date
+  plan      Plan     @default(LAUNCH)
+  planExpiresAt DateTime? @db.Date
 }
 
 model emailEvents {

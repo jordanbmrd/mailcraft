@@ -37,8 +37,8 @@ export async function GET() {
             status: template.status,
             createdAt: moment(template.createdAt).format('MM/DD/yyyy HH:mm'),
             lastSentAt: template.lastSentAt ? moment(template.lastSentAt).format('MM/DD/yyyy HH:mm') : null,
-            openRate: template.openRate,
-            clickRate: template.clickRate,
+            openCount: template.openCount,
+            clickCount: template.clickCount,
             targetType: template.targetType,
             groups: groups.map(g => g.name)
         }));
