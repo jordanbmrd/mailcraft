@@ -24,31 +24,19 @@ export async function GET() {
             return NextResponse.json({ error: 'Newsletter not found' }, { status: 404 });
         }
 
-        // Get subscribers without including groups
+        // Get subscribers
         const subscribers = await prisma.subscribers.findMany({
             where: { newsletterId: newsletter.id }
         });
 
-        // Extract all unique group IDs from subscribers
-        const allGroupIds = subscribers
-            .flatMap(s => s.groupIds)
-            .filter((value, index, self) => self.indexOf(value) === index);
-
-        // Get groups separately
-        const groups = await prisma.groups.findMany({
-            where: { id: { in: allGroupIds } }
-        });
-
-        // Map group names to subscriber's groupIds
+        // Format subscribers data
         const formattedSubscribers = subscribers.map(sub => ({
             id: sub.id,
             email: sub.email,
             flag: getFlagEmoji(sub.countryCode),
             location: sub.location,
             joinDate: moment(sub.subscriptionDate).format('MM/DD/yyyy HH:mm'),
-            groups: sub.groupIds.map(gid =>
-                groups.find(g => g.id === gid)?.name || 'Unknown Group'
-            ),
+            groups: sub.groups,
             status: sub.status
         }));
 

@@ -16,6 +16,14 @@ import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {Checkbox} from "@/components/ui/checkbox";
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
@@ -61,10 +69,14 @@ import {
     Filter,
     ListFilter,
     Plus,
+    Send,
     Trash,
 } from "lucide-react";
 import {useEffect, useId, useMemo, useRef, useState} from "react";
 import {useRouter} from "next/navigation";
+import {RadioGroup, RadioGroupItem} from "@/components/ui/radio-group";
+import SendEmailDialog from "@/app/components/send-email-dialog";
+import DeleteConfirmationDialog from "@/app/components/delete-confirmation-dialog";
 
 type Item = {
     id: string;
@@ -132,6 +144,11 @@ const columns: ColumnDef<Item>[] = [
     {
         header: "Last sent at",
         accessorKey: "lastSentAt",
+        cell: ({ row }) => (
+            <span>
+                {row.getValue("lastSentAt") || "Not sent"}
+            </span>
+        )
     },
     {
         header: "Created at",
@@ -201,13 +218,33 @@ export default function CreatedEmailsTable(props: CreatedEmailsTableProps) {
         fetchPosts();
     }, []);
 
-    const handleDeleteRows = () => {
+    const handleDeleteRows = async () => {
         const selectedRows = table.getSelectedRowModel().rows;
-        const updatedData = data.filter(
-            (item) => !selectedRows.some((row) => row.original.id === item.id),
-        );
-        setData(updatedData);
-        table.resetRowSelection();
+        
+        try {
+            // Supprimer chaque template sélectionné
+            await Promise.all(
+                selectedRows.map(async (row) => {
+                    const res = await fetch(`/api/newsletter/email-templates/${row.getValue("id")}`, {
+                        method: 'DELETE',
+                    });
+
+                    if (!res.ok) {
+                        throw new Error(`Failed to delete template ${row.getValue("id")}`);
+                    }
+                })
+            );
+
+            // Mettre à jour l'état local
+            const updatedData = data.filter(
+                (item) => !selectedRows.some((row) => row.original.id === item.id)
+            );
+            setData(updatedData);
+            table.resetRowSelection();
+        } catch (error) {
+            console.error('Error deleting email templates:', error);
+            // TODO: Show error toast
+        }
     };
 
     const table = useReactTable({
@@ -400,8 +437,8 @@ export default function CreatedEmailsTable(props: CreatedEmailsTableProps) {
                                     />
                                     Delete
                                     <span className="-me-1 ms-3 inline-flex h-5 max-h-full items-center rounded border border-border bg-background px-1 font-[inherit] text-[0.625rem] font-medium text-muted-foreground/70">
-                    {table.getSelectedRowModel().rows.length}
-                  </span>
+                                        {table.getSelectedRowModel().rows.length}
+                                    </span>
                                 </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
@@ -417,13 +454,18 @@ export default function CreatedEmailsTable(props: CreatedEmailsTableProps) {
                                         <AlertDialogDescription>
                                             This action cannot be undone. This will permanently delete{" "}
                                             {table.getSelectedRowModel().rows.length} selected{" "}
-                                            {table.getSelectedRowModel().rows.length === 1 ? "row" : "rows"}.
+                                            {table.getSelectedRowModel().rows.length === 1 ? "template" : "templates"}.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                 </div>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDeleteRows}>Delete</AlertDialogAction>
+                                    <AlertDialogAction 
+                                        onClick={handleDeleteRows}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                        Delete
+                                    </AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
@@ -628,38 +670,164 @@ export default function CreatedEmailsTable(props: CreatedEmailsTableProps) {
 
 function RowActions({ row }: { row: Row<Item> }) {
     const router = useRouter();
+    const [isOpen, setIsOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isEditNameDialogOpen, setIsEditNameDialogOpen] = useState(false);
+    const [newSubject, setNewSubject] = useState<string>(row.getValue("subject") as string);
 
     const handleEditEmail = (row: Row<Item>) => {
         router.push(`/emails/create?id=${row.getValue("id")}`);
     }
 
-    const handleDuplicateEmail = (row: Row<Item>) => {
-        console.log(row);
+    const handleEditName = async () => {
+        try {
+            const res = await fetch(`/api/newsletter/email-templates/${row.getValue("id")}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    subject: newSubject
+                }),
+            });
+
+            if (!res.ok) {
+                throw new Error('Failed to update template name');
+            }
+
+            // Rafraîchir la page pour voir les changements
+            window.location.reload();
+        } catch (error) {
+            console.error('Error updating email template name:', error);
+        }
     }
 
-    const handleRemoveEmail = (row: Row<Item>) => {
-        console.log(row);
+    const handleDuplicateEmail = async (row: Row<Item>) => {
+        try {
+            // Récupérer les détails du template
+            const res = await fetch(`/api/newsletter/email-templates/${row.getValue("id")}`);
+            const template = await res.json();
+
+            // Créer une copie du template
+            const duplicateRes = await fetch('/api/newsletter/email-templates', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: `${template.name} (Copy)`,
+                    subject: `${template.subject} (Copy)`,
+                    jsonContent: template.jsonContent,
+                    htmlContent: template.htmlContent
+                }),
+            });
+
+            if (!duplicateRes.ok) {
+                throw new Error('Failed to duplicate template');
+            }
+
+            // Rafraîchir la page pour voir le nouveau template
+            window.location.reload();
+        } catch (error) {
+            console.error('Error duplicating email template:', error);
+        }
+    }
+
+    const handleRemoveEmail = async () => {
+        try {
+            const res = await fetch(`/api/newsletter/email-templates/${row.getValue("id")}`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) {
+                throw new Error('Failed to delete template');
+            }
+
+            // Rafraîchir la page pour voir les changements
+            window.location.reload();
+        } catch (error) {
+            console.error('Error deleting email template:', error);
+        }
     }
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-1">
+            <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setIsOpen(true)}
+                className="hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            >
+                <Send size={16} className="text-neutral-600 dark:text-neutral-400" />
+            </Button>
+
+            <SendEmailDialog
+                open={isOpen}
+                onOpenChange={setIsOpen}
+                emailId={row.getValue("id")}
+            />
+
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                     <Button size="icon" variant="ghost" className="shadow-none" aria-label="Edit item">
                         <Ellipsis size={16} strokeWidth={2} aria-hidden="true" />
                     </Button>
-                </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuGroup>
-                    <DropdownMenuItem onClick={() => handleEditEmail(row)}>Edit</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleDuplicateEmail(row)}>Duplicate</DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleRemoveEmail(row)} className="text-destructive focus:text-destructive">
-                    <span>Delete</span>
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuGroup>
+                        <DropdownMenuItem onClick={() => setIsEditNameDialogOpen(true)}>Edit name</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditEmail(row)}>Edit</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDuplicateEmail(row)}>Duplicate</DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                        onClick={() => setIsDeleteDialogOpen(true)} 
+                        className="text-destructive focus:text-destructive"
+                    >
+                        <span>Delete</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DeleteConfirmationDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                onConfirm={handleRemoveEmail}
+                title="Are you sure?"
+                description="This action cannot be undone. The template will be permanently deleted."
+            />
+
+            <Dialog open={isEditNameDialogOpen} onOpenChange={setIsEditNameDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit template name</DialogTitle>
+                        <DialogDescription>
+                            Enter a new name for your email template.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="name" className="text-right">
+                                Name
+                            </Label>
+                            <Input
+                                id="name"
+                                className="col-span-3"
+                                value={newSubject}
+                                onChange={e => setNewSubject(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditNameDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleEditName} disabled={!newSubject}>
+                            Save changes
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div>
     );
 }

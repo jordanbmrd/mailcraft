@@ -3,7 +3,7 @@ import {NextResponse} from "next/server";
 
 export async function POST(
     request: Request,
-    params: Promise<{ username: string }>
+    { params }: { params: Promise<{ username: string }> }
 ) {
     try {
         const resolvedParams = await params;
@@ -18,7 +18,6 @@ export async function POST(
         }
 
         // Find newsletter owner by username
-        console.log(resolvedParams.username);
         const owner = await prisma.users.findFirst({
             where: { username: resolvedParams.username }
         });
@@ -71,7 +70,7 @@ export async function POST(
                 countryCode: userPosition.countryCode || "",
                 location: (userPosition.city && userPosition.country) ? `${userPosition.city}, ${userPosition.country}` : "Unknown",
                 status: "ACTIVE",
-                groupIds: [],
+                groups: [],
                 subscriptionDate: new Date(),
                 createdAt: new Date(),
                 updatedAt: new Date()

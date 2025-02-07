@@ -1,11 +1,14 @@
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 import React from "react";
 import SubscribeForm from "@/app/components/subscribe-form";
+import { capitalizeFirstLetter } from "@/lib/utils";
 
 async function Subscribe({params}: {
     params: Promise<{ username: string }>
 }) {
     const resolvedParams = await params;
+    const displayUsername = capitalizeFirstLetter(resolvedParams.username);
+
     return (
         <div className="flex justify-center items-center h-screen">
             <Card className="mx-auto shadow-xl">
@@ -28,12 +31,10 @@ async function Subscribe({params}: {
                         </div>
                         <CardHeader>
                             <CardTitle className="sm:text-center">
-                                <span className="capitalize">{resolvedParams.username}</span>&apos;s Newsletter
+                                {displayUsername}&apos;s Newsletter
                             </CardTitle>
                             <CardDescription className="sm:text-center">
-                                Subscribe to receive <span
-                                className="capitalize">{resolvedParams.username}</span>&apos;s
-                                messages
+                                Subscribe to receive {displayUsername}&apos;s messages
                             </CardDescription>
                         </CardHeader>
                     </div>

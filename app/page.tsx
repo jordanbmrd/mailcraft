@@ -12,8 +12,15 @@ import {redirect} from "next/navigation";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 import {Button} from "@/components/ui/button";
 import {cn} from "@/lib/utils";
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import NewEmailModal from "@/app/components/new-email-modal";
+
+type SubscriberStats = {
+    total: number;
+    previousTotal: number;
+    activePercentage: number;
+    percentageIncrease: number;
+};
 
 const Dashboard = () => {
     const {data, status} = useSession({
@@ -25,8 +32,41 @@ const Dashboard = () => {
 
     const [isCopied, setIsCopied] = React.useState(false);
     const [isNewEmailModalOpen, setIsNewEmailModalOpen] = useState(false);
+    const [subscriberStats, setSubscriberStats] = useState<SubscriberStats>({
+        total: 0,
+        previousTotal: 0,
+        activePercentage: 0,
+        percentageIncrease: 0
+    });
 
     const subscriptionLink = data?.user.username ? `mailcraft.pro/${data.user.username}/subscribe` : 'Loading...';
+
+    useEffect(() => {
+        async function fetchSubscriberStats() {
+            try {
+                const res = await fetch('/api/newsletter/subscribers');
+                const subscribers = await res.json();
+                
+                const total = subscribers.length;
+                const activeSubscribers = subscribers.filter((s: any) => s.status === 'ACTIVE').length;
+                const previousTotal = total - Math.floor(total * 0.082); // Simulation du total précédent avec +8.2%
+
+                const percentageIncrease = previousTotal > 0 
+                    ? ((total - previousTotal) / previousTotal) * 100 
+                    : 0;
+
+                setSubscriberStats({
+                    total,
+                    previousTotal,
+                    activePercentage: total > 0 ? (activeSubscribers / total) * 100 : 0,
+                    percentageIncrease
+                });
+            } catch (error) {
+                console.error('Failed to fetch subscriber stats:', error);
+            }
+        }
+        fetchSubscriberStats();
+    }, []);
 
     const handleCopyLink = () => {
         navigator.clipboard.writeText(subscriptionLink);
@@ -54,17 +94,17 @@ const Dashboard = () => {
                 <div className="flex gap-4 flex-wrap">
                     <StatsCard
                         title="Subscribers"
-                        value="12,450"
-                        percentage={8.2}
-                        footerText="From 11,500 (last 4 weeks)"
-                        positive
+                        value={subscriberStats.total.toLocaleString()}
+                        percentage={subscriberStats.percentageIncrease}
+                        footerText={`From ${subscriberStats.previousTotal.toLocaleString()} (last 4 weeks)`}
+                        positive={subscriberStats.total > subscriberStats.previousTotal}
                     />
                     <StatsCard
-                        title="Open Rate"
-                        value="64.7%"
+                        title="Active Rate"
+                        value={`${subscriberStats.activePercentage.toFixed(1)}%`}
                         percentage={2.1}
                         footerText="Industry average 58.3%"
-                        positive
+                        positive={subscriberStats.activePercentage > 58.3}
                     />
                     <StatsCard
                         title="Click Rate"
@@ -76,7 +116,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* Active subscribers chart */}
-                <ActiveSubscribersChart/>
+                <ActiveSubscribersChart />
             </div>
 
             {/* Right Sidebar */}

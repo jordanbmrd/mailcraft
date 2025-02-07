@@ -7,17 +7,21 @@ import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/compo
 import Link from "next/link";
 import {signIn} from "next-auth/react";
 import {useRouter} from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 function SignUp() {
     const router = useRouter();
     const id = useId();
+    const { toast } = useToast();
 
     const [username, setUsername] = React.useState('');
     const [email, setEmail] = React.useState('');
     const [password, setPassword] = React.useState('');
+    const [isLoading, setIsLoading] = React.useState(false);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setIsLoading(true);
 
         try {
             // First create the user in your database
@@ -29,8 +33,16 @@ function SignUp() {
                 body: JSON.stringify({ username, email, password }),
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                throw new Error('Registration failed');
+                toast({
+                    variant: "destructive",
+                    title: "Erreur",
+                    description: data.error,
+                });
+                setIsLoading(false);
+                return;
             }
 
             // Then sign in the user
@@ -47,6 +59,13 @@ function SignUp() {
             router.push('/');
         } catch (error) {
             console.error('Signup error:', error);
+            toast({
+                variant: "destructive",
+                title: "Erreur",
+                description: "Une erreur est survenue lors de l'inscription.",
+            });
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -83,12 +102,28 @@ function SignUp() {
                             <div className="flex gap-4">
                                 <div className="space-y-2 w-full">
                                     <Label htmlFor={`${id}-username`}>Username</Label>
-                                    <Input id={`${id}-username`} placeholder="mattwelsh" type="text" value={username} onChange={(e) => setUsername(e.target.value)} required/>
+                                    <Input 
+                                        id={`${id}-username`} 
+                                        placeholder="mattwelsh" 
+                                        type="text" 
+                                        value={username} 
+                                        onChange={(e) => setUsername(e.target.value)} 
+                                        disabled={isLoading}
+                                        required
+                                    />
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor={`${id}-email`}>Email</Label>
-                                <Input id={`${id}-email`} placeholder="hi@yourcompany.com" value={email} onChange={(e) => setEmail(e.target.value)} type="email" required/>
+                                <Input 
+                                    id={`${id}-email`} 
+                                    placeholder="hi@yourcompany.com" 
+                                    value={email} 
+                                    onChange={(e) => setEmail(e.target.value)} 
+                                    type="email" 
+                                    disabled={isLoading}
+                                    required
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor={`${id}-password`}>Password</Label>
@@ -98,12 +133,13 @@ function SignUp() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     type="password"
+                                    disabled={isLoading}
                                     required
                                 />
                             </div>
                         </div>
-                        <Button type="submit" className="w-full">
-                            Sign up
+                        <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading ? "Inscription en cours..." : "Sign up"}
                         </Button>
                     </form>
 

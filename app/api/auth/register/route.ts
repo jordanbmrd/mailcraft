@@ -5,17 +5,32 @@ import {prisma} from '@/lib/prisma';
 export async function POST(request: Request) {
     try {
         const { username, email, password } = await request.json();
+        
+        // Transform username to lowercase
+        const lowercaseUsername = username.toLowerCase();
 
-        const existingUser = await prisma.users.findFirst({ where: { email } });
+        // Check if email or username already exists
+        const existingUser = await prisma.users.findFirst({
+            where: {
+                OR: [
+                    { email },
+                    { username: lowercaseUsername }
+                ]
+            }
+        });
+
         if (existingUser) {
-            return NextResponse.json({ error: 'User already exists' }, { status: 400 });
+            const field = existingUser.email === email ? 'email' : 'username';
+            return NextResponse.json({ 
+                error: `This ${field} is already taken` 
+            }, { status: 400 });
         }
 
         const hashedPassword = await bcrypt.hash(password, 12);
 
         const user = await prisma.users.create({
             data: {
-                username,
+                username: lowercaseUsername,
                 email,
                 password: hashedPassword,
                 createdAt: new Date(),

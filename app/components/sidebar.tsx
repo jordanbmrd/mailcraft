@@ -17,6 +17,7 @@ import {usePathname} from "next/navigation";
 import {signOut, useSession} from "next-auth/react";
 import {Button} from "@/components/ui/button";
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
+import { capitalizeFirstLetter } from "@/lib/utils";
 
 const PAGES_WITHOUT_SIDEBAR = ['/signin', '/signup', '/subscribe'];
 
@@ -33,17 +34,10 @@ export default function Sidebar() {
             ),
         },
         {
-            label: "Write",
-            href: "/write",
+            label: "Emails",
+            href: "/emails",
             icon: (
                 <SquarePen className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0"/>
-            ),
-        },
-        {
-            label: "Grow",
-            href: "#",
-            icon: (
-                <TrendingUp className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0"/>
             ),
         },
         {
@@ -54,6 +48,13 @@ export default function Sidebar() {
             ),
         },
         {
+            label: "Grow",
+            href: "#",
+            icon: (
+                <TrendingUp className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0"/>
+            ),
+        },
+        {
             label: "Settings",
             href: "#",
             icon: (
@@ -61,7 +62,7 @@ export default function Sidebar() {
             ),
         },
         {
-            label: data?.user.username ?? 'Loading...',
+            label: capitalizeFirstLetter(data?.user.username) ?? 'Loading...',
             href: "#",
             position: "bottom",
             icon: (

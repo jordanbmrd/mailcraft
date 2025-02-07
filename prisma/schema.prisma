@@ -28,6 +28,7 @@ model emailTemplates {
   id             String    @id @default(auto()) @map("_id") @db.ObjectId
   createdAt      DateTime  @db.Date
   jsonContent    Json
+  htmlContent    String
   lastSentAt     DateTime? @db.Date
   name           String
   newsletterId   String    @db.ObjectId
@@ -35,7 +36,6 @@ model emailTemplates {
   subject        String
   openRate       Float     @default(0)
   clickRate      Float     @default(0)
-  targetGroupIds String[]
   targetType     String
   updatedAt      DateTime  @db.Date
 
@@ -65,7 +65,7 @@ model subscribers {
   countryCode      String
   createdAt        DateTime @db.Date
   email            String   @unique(map: "email_1")
-  groupIds         String[]
+  groups           String[]
   location         String
   newsletterId     String   @db.ObjectId
   status           String
@@ -83,4 +83,16 @@ model users {
   username  String   @unique
   password  String
   updatedAt DateTime @db.Date
+}
+
+model emailEvents {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  emailTemplateId String   @db.ObjectId
+  subscriberId    String   @db.ObjectId
+  eventType       String   // "open" ou "click"
+  createdAt       DateTime @db.Date
+  url             String?  // Pour les événements de type "click"
+
+  @@index([emailTemplateId], map: "emailTemplateId_1")
+  @@index([subscriberId], map: "subscriberId_1")
 }
