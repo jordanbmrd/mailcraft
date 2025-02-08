@@ -107,13 +107,12 @@ export default function PlansCard() {
             </div>
 
             {/* Plans Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
                 {Object.entries(PLAN_DETAILS).map(([plan, details]) => (
                     <Card 
                         key={plan} 
                         className={cn(
-                            "relative p-6 flex flex-col transition-all hover:shadow-lg",
-                            details.popular && "border-primary shadow-md scale-[1.02]"
+                            "relative p-6 flex flex-col transition-all hover:shadow-lg"
                         )}
                     >
                         <div className="flex justify-between">
@@ -153,11 +152,8 @@ export default function PlansCard() {
                         </ul>
 
                         <Button
-                            className={cn(
-                                "mt-8",
-                                details.popular && "bg-primary hover:bg-primary/90"
-                            )}
-                            variant={plan === currentPlan ? "secondary" : details.popular ? "default" : "outline"}
+                            className="mt-8"
+                            variant={plan === currentPlan ? "secondary" : "outline"}
                             disabled={plan === currentPlan}
                             size="lg"
                         >

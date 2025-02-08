@@ -4,11 +4,8 @@ import {
     ArrowLeftToLine,
     ArrowRightToLine,
     LayoutDashboard,
-    Settings,
     Speech,
     SquarePen,
-    TrendingUp,
-    CreditCard
 } from "lucide-react";
 import React, {useState} from "react";
 import Image from "next/image";
@@ -46,13 +43,6 @@ export default function Sidebar() {
             href: "/audience",
             icon: (
                 <Speech className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0"/>
-            ),
-        },
-        {
-            label: "Plans",
-            href: "/settings/plans",
-            icon: (
-                <CreditCard className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0"/>
             ),
         },
         // {

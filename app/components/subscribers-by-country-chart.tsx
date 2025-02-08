@@ -5,7 +5,7 @@ import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recha
 import { useEffect, useState } from "react";
 
 interface Subscriber {
-    countryCode: string;
+    country: string;
 }
 
 interface CountryData {
@@ -27,7 +27,7 @@ export default function SubscribersByCountryChart() {
 
                 // Count subscribers by country
                 const countryCount = subscribers.reduce<Record<string, number>>((acc, subscriber) => {
-                    const country = subscriber.countryCode;
+                    const country = subscriber.country;
                     acc[country] = (acc[country] || 0) + 1;
                     return acc;
                 }, {});
@@ -108,8 +108,7 @@ export default function SubscribersByCountryChart() {
                                 />
                                 <Bar
                                     dataKey="count"
-                                    fill="currentColor"
-                                    className="fill-primary"
+                                    fill="#3b82f6"
                                     radius={[4, 4, 0, 0]}
                                 />
                             </BarChart>

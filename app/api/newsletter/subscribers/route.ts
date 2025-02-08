@@ -41,6 +41,7 @@ export async function GET() {
             id: sub.id,
             email: sub.email,
             flag: getFlagEmoji(sub.countryCode),
+            country: sub.country,
             location: sub.location,
             joinDate: moment(sub.subscriptionDate).format('MM/DD/yyyy HH:mm'),
             groups: sub.groups,

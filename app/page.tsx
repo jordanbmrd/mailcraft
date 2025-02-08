@@ -2,7 +2,7 @@
 import ActiveSubscribersChart from "@/app/components/active-subscribers-chart";
 import StatsCard from "@/app/components/stats-card";
 import {Input} from "@/components/ui/input";
-import {Check, Copy, ExternalLink, Pen} from "lucide-react";
+import {Check, Copy, ExternalLink, Pen, AlertTriangle} from "lucide-react";
 import {Badge} from "@/components/ui/badge";
 import {GradientButton} from "@/components/ui/gradient-button";
 import {Card} from "@/components/ui/card";
@@ -11,10 +11,12 @@ import {useSession} from "next-auth/react";
 import {redirect} from "next/navigation";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 import {Button} from "@/components/ui/button";
-import {cn} from "@/lib/utils";
+import {cn, PLAN_LIMITS, hasReachedSubscriptionLimit} from "@/lib/utils";
 import React, {useEffect, useState} from "react";
 import NewEmailModal from "@/app/components/new-email-modal";
 import SubscribersByCountryChart from "@/app/components/subscribers-by-country-chart";
+import { Plan } from "@prisma/client";
+import UpgradePlanDialog from "@/app/components/upgrade-plan-dialog";
 
 type SubscriberStats = {
     total: number;
@@ -40,6 +42,7 @@ const Dashboard = () => {
 
     const [isCopied, setIsCopied] = React.useState(false);
     const [isNewEmailModalOpen, setIsNewEmailModalOpen] = useState(false);
+    const [userPlan, setUserPlan] = useState<Plan>('LAUNCH');
     const [subscriberStats, setSubscriberStats] = useState<SubscriberStats>({
         total: 0,
         previousTotal: 0,
@@ -52,12 +55,20 @@ const Dashboard = () => {
         clickRate: 0,
         previousClickRate: 0
     });
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const subscriptionLink = data?.user.username ? `mailcraft.pro/${data.user.username}/subscribe` : 'Loading...';
 
     useEffect(() => {
         async function fetchStats() {
             try {
+                // Fetch user data for plan
+                const userRes = await fetch('/api/user');
+                if (userRes.ok) {
+                    const userData = await userRes.json();
+                    setUserPlan(userData.plan);
+                }
+
                 // Fetch subscribers
                 const subscribersRes = await fetch('/api/newsletter/subscribers');
                 const subscribers = await subscribersRes.json();
@@ -158,6 +169,8 @@ const Dashboard = () => {
 
     if (status === "loading") return "Loading...";
 
+    const hasReachedLimit = hasReachedSubscriptionLimit(subscriberStats.total, userPlan);
+
     return (
         <div className="flex">
             {/* Main Part */}
@@ -170,6 +183,25 @@ const Dashboard = () => {
                         Your newsletter is performing great this week ! 🚀<br/>
                         You have 3 drafts in progress and 2 scheduled campaigns.
                     </p>
+                    
+                    {hasReachedLimit && (
+                        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-800">
+                            <AlertTriangle className="h-5 w-5 text-red-600" />
+                            <div className="flex-1">
+                                <p className="font-medium">Subscriber limit reached</p>
+                                <p className="text-sm">You've reached the maximum of {PLAN_LIMITS[userPlan]} subscribers for your {userPlan.toLowerCase()} plan. Upgrade your plan to add more subscribers.</p>
+                            </div>
+                            <UpgradePlanDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                                <Button 
+                                    variant="destructive" 
+                                    size="sm"
+                                    className="whitespace-nowrap"
+                                >
+                                    Upgrade plan
+                                </Button>
+                            </UpgradePlanDialog>
+                        </div>
+                    )}
                 </div>
 
                 {/* Top Metrics Row */}

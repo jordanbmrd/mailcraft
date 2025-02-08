@@ -67,6 +67,8 @@ model subscribers {
   email            String   @unique(map: "email_1")
   groups           String[]
   location         String
+  city             String
+  country          String
   newsletterId     String   @db.ObjectId
   status           String
   subscriptionDate DateTime @db.Date
