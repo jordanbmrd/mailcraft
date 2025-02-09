@@ -2,6 +2,28 @@
 
 Mailcraft is a powerful newsletter management platform that allows creators to build and manage their email subscriber base with ease. Built with Next.js, this platform provides a seamless experience for both newsletter creators and subscribers.
 
+## 📸 Interface Showcase
+
+### Dashboard Overview
+![Dashboard Overview](./public/presentation/dashboard-page.png)
+*Main dashboard with key metrics and performance indicators*
+
+### Email Builder
+![Email Builder](./public/presentation/build-email-page.png)
+*Intuitive email builder interface for creating engaging newsletters*
+
+### Subscriber Management
+![Subscriber Management](./public/presentation/subscribers-page.png)
+*Comprehensive subscriber management and analytics*
+
+### Email Campaign History
+![Email Campaigns](./public/presentation/emails-page.png)
+*Track and manage your email campaigns*
+
+### Subscriber Portal
+![Subscribe Page](./public/presentation/susbcribe-page.png)
+*Clean and simple subscription interface for your audience*
+
 ## Features
 
 - 🔐 Secure authentication system
@@ -102,7 +124,3 @@ mailcraft/
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For support, email support@mailcraft.com or open an issue in the repository.
