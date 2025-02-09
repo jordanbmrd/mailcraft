@@ -15,8 +15,9 @@ import {cn, PLAN_LIMITS, hasReachedSubscriptionLimit} from "@/lib/utils";
 import React, {useEffect, useState} from "react";
 import NewEmailModal from "@/app/components/new-email-modal";
 import SubscribersByCountryChart from "@/app/components/subscribers-by-country-chart";
-import { Plan } from "@prisma/client";
 import UpgradePlanDialog from "@/app/components/upgrade-plan-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { useSearchParams } from "next/navigation";
 
 type SubscriberStats = {
     total: number;
@@ -33,7 +34,7 @@ type EmailStats = {
 };
 
 const Dashboard = () => {
-    const {data, status} = useSession({
+    const { data: session, update: updateSession } = useSession({
         required: true,
         onUnauthenticated() {
             redirect("/api/auth/signin");
@@ -42,7 +43,6 @@ const Dashboard = () => {
 
     const [isCopied, setIsCopied] = React.useState(false);
     const [isNewEmailModalOpen, setIsNewEmailModalOpen] = useState(false);
-    const [userPlan, setUserPlan] = useState<Plan>('LAUNCH');
     const [subscriberStats, setSubscriberStats] = useState<SubscriberStats>({
         total: 0,
         previousTotal: 0,
@@ -56,26 +56,68 @@ const Dashboard = () => {
         previousClickRate: 0
     });
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const { toast } = useToast();
+    const searchParams = useSearchParams();
 
-    const subscriptionLink = data?.user.username ? `mailcraft.pro/${data.user.username}/subscribe` : 'Loading...';
+    const subscriptionLink = session?.user.username ? `mailcraft.pro/${session.user.username}/subscribe` : 'Loading...';
 
+    // Effect for payment status handling
+    useEffect(() => {
+        const paymentSuccess = searchParams.get('paymentSuccess');
+        const paymentCanceled = searchParams.get('paymentCanceled');
+        const sessionId = searchParams.get('session_id');
+
+        const handlePayment = async () => {
+            if (paymentSuccess === 'true' && sessionId) {
+                try {
+                    const res = await fetch(`/api/stripe/verify-session?session_id=${sessionId}`);
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        await updateSession();
+                        toast({
+                            title: "Payment successful!",
+                            description: "Your subscription has been updated. Enjoy your new features!",
+                            variant: "default",
+                        });
+                        // Rediriger vers le dashboard pour forcer un rafraîchissement complet
+                        window.location.href = '/';
+                    }
+                } catch (error) {
+                    console.error('Error verifying session:', error);
+                    toast({
+                        title: "Error",
+                        description: "There was a problem verifying your payment. Please contact support if the issue persists.",
+                        variant: "destructive",
+                    });
+                }
+            } else if (paymentCanceled === 'true') {
+                toast({
+                    title: "Payment cancelled",
+                    description: "The payment process was cancelled. Your subscription remains unchanged.",
+                    variant: "destructive",
+                });
+                // Rediriger vers le dashboard sans les paramètres d'URL
+                window.location.href = '/';
+            }
+        };
+
+        if (paymentSuccess || paymentCanceled) {
+            handlePayment();
+        }
+    }, [searchParams, toast, updateSession]); // Ajout de toast et updateSession aux dépendances
+
+    // Effect for stats fetching
     useEffect(() => {
         async function fetchStats() {
             try {
-                // Fetch user data for plan
-                const userRes = await fetch('/api/user');
-                if (userRes.ok) {
-                    const userData = await userRes.json();
-                    setUserPlan(userData.plan);
-                }
-
                 // Fetch subscribers
                 const subscribersRes = await fetch('/api/newsletter/subscribers');
                 const subscribers = await subscribersRes.json();
                 
                 const total = subscribers.length;
                 const activeSubscribers = subscribers.filter((s: any) => s.status === 'ACTIVE').length;
-                const previousTotal = total - Math.floor(total * 0.082); // Simulation du total précédent avec +8.2%
+                const previousTotal = total - Math.floor(total * 0.082);
 
                 const percentageIncrease = previousTotal > 0 
                     ? ((total - previousTotal) / previousTotal) * 100 
@@ -139,8 +181,9 @@ const Dashboard = () => {
                 console.error('Failed to fetch stats:', error);
             }
         }
+
         fetchStats();
-    }, []);
+    }, []); // Only run once on mount
 
     const calculateRate = (emails: any[], rateType: 'openCount' | 'clickCount', recipientsMap: Map<string, number>) => {
         if (emails.length === 0) return 0;
@@ -167,9 +210,9 @@ const Dashboard = () => {
         setTimeout(() => setIsCopied(false), 1500);
     };
 
-    if (status === "loading") return "Loading...";
+    if (session === null) return "Loading...";
 
-    const hasReachedLimit = hasReachedSubscriptionLimit(subscriberStats.total, userPlan);
+    const hasReachedLimit = session ? hasReachedSubscriptionLimit(subscriberStats.total, session.user.plan) : false;
 
     return (
         <div className="flex">
@@ -177,7 +220,7 @@ const Dashboard = () => {
             <div className="flex-1">
                 <div className="mb-6">
                     <h1 className="text-3xl text-black">
-                        Welcome back, {data?.user.username} !
+                        Welcome back, {session?.user.username} !
                     </h1>
                     <p className="mt-2 text-neutral-600 dark:text-neutral-300">
                         Your newsletter is performing great this week ! 🚀<br/>
@@ -189,7 +232,7 @@ const Dashboard = () => {
                             <AlertTriangle className="h-5 w-5 text-red-600" />
                             <div className="flex-1">
                                 <p className="font-medium">Subscriber limit reached</p>
-                                <p className="text-sm">You've reached the maximum of {PLAN_LIMITS[userPlan]} subscribers for your {userPlan.toLowerCase()} plan. Upgrade your plan to add more subscribers.</p>
+                                <p className="text-sm">You've reached the maximum of {PLAN_LIMITS[session.user.plan]} subscribers for your {session.user.plan.toLowerCase()} plan. Upgrade your plan to add more subscribers.</p>
                             </div>
                             <UpgradePlanDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                                 <Button 

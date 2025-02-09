@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface PlanDetails {
     name: string;
@@ -69,12 +70,49 @@ const PLAN_DETAILS: Record<string, PlanDetails> = {
 };
 
 export default function PlansCard() {
-    const { data: session } = useSession();
-    const currentPlan = session?.user?.plan || "LAUNCH";
+    const { data: session, update: updateSession } = useSession();
     const [isYearly, setIsYearly] = useState(false);
+    const [isLoading, setIsLoading] = useState<string | null>(null);
+    const { toast } = useToast();
 
     const formatPrice = (price: number) => {
         return price === 0 ? "Free" : `$${price}`;
+    };
+
+    const handleUpgrade = async (plan: string) => {
+        if (plan === session?.user?.plan) return;
+        
+        try {
+            setIsLoading(plan);
+            const response = await fetch('/api/stripe/create-checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    plan,
+                    interval: isYearly ? 'yearly' : 'monthly',
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Something went wrong');
+            }
+
+            // Redirect to Stripe Checkout
+            window.location.href = data.url;
+        } catch (error) {
+            console.error('Error upgrading plan:', error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Failed to upgrade plan. Please try again."
+            });
+        } finally {
+            setIsLoading(null);
+        }
     };
 
     return (
@@ -112,7 +150,8 @@ export default function PlansCard() {
                     <Card 
                         key={plan} 
                         className={cn(
-                            "relative p-6 flex flex-col transition-all hover:shadow-lg"
+                            "relative p-6 flex flex-col transition-all hover:shadow-lg",
+                            plan === session?.user?.plan && "border-primary"
                         )}
                     >
                         <div className="flex justify-between">
@@ -153,11 +192,24 @@ export default function PlansCard() {
 
                         <Button
                             className="mt-8"
-                            variant={plan === currentPlan ? "secondary" : "outline"}
-                            disabled={plan === currentPlan}
+                            variant={plan === session?.user?.plan ? "secondary" : "outline"}
+                            disabled={plan === session?.user?.plan || isLoading !== null}
+                            onClick={() => handleUpgrade(plan)}
                             size="lg"
                         >
-                            {plan === currentPlan ? "Current Plan" : "Upgrade to " + details.name}
+                            {isLoading === plan ? (
+                                <span className="flex items-center gap-2">
+                                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                    </svg>
+                                    Processing...
+                                </span>
+                            ) : plan === session?.user?.plan ? (
+                                "Current Plan"
+                            ) : (
+                                "Upgrade to " + details.name
+                            )}
                         </Button>
                     </Card>
                 ))}
