@@ -24,6 +24,10 @@ Mailcraft is a powerful newsletter management platform that allows creators to b
 ![Subscribe Page](./public/presentation/susbcribe-page.png)
 *Clean and simple subscription interface for your audience*
 
+### Premium Plans
+![Premium Plans](./public/presentation/choose-plan-page.png)
+*Flexible pricing plans to suit different newsletter needs*
+
 ## Features
 
 - 🔐 Secure authentication system
