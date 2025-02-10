@@ -127,4 +127,4 @@ mailcraft/
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the Mailcraft Non-Commercial License - see the LICENSE file for details. This license explicitly prohibits any commercial use of the software. The software may only be used for personal, educational, research, or other non-commercial purposes.
